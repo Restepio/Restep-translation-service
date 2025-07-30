@@ -13,8 +13,8 @@ COPY download_model.py .
 RUN python download_model.py
 
 # Copy the handler and main application files
-COPY handler.py .
+COPY rp_handler.py .
 COPY main.py .
 
 # Run the handler script when the container launches
-CMD ["python", "handler.py"]
+CMD ["python", "rp_handler.py"]
