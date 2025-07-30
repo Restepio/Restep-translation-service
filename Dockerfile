@@ -15,5 +15,8 @@ RUN python download_model.py
 # Copy the handler file
 COPY rp_handler.py .
 
+# Set the RUNPOD_HANDLER environment variable
+ENV RUNPOD_HANDLER=rp_handler.handler
+
 # Run the handler script when the container launches
-CMD ["python", "rp_handler.py"]
+CMD ["python", "-m", "runpod.serverless.worker"]
