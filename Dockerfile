@@ -12,9 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY download_model.py .
 RUN python download_model.py
 
-# Copy the handler and main application files
+# Copy the handler file
 COPY rp_handler.py .
-COPY main.py .
 
 # Run the handler script when the container launches
 CMD ["python", "rp_handler.py"]
