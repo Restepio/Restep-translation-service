@@ -15,11 +15,13 @@ class TranslationRequest(BaseModel):
     src_lang: str
     tgt_lang: str
 
-# Load model at startup
+# Load model from the cached directory
 model_name = "facebook/nllb-200-1.3B"
-logger.info("Loading tokenizer and model: %s", model_name)
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+cache_dir = "/app/model_cache"
+
+logger.info("Loading tokenizer and model from: %s", cache_dir)
+tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name, cache_dir=cache_dir)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info("Using device: %s", device)
 model.to(device)
