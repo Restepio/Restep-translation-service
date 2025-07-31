@@ -12,11 +12,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY download_model.py .
 RUN python download_model.py
 
-# Copy the handler file
+# Copy the handler and main application files
 COPY rp_handler.py .
+COPY main.py .
 
-# Set the RUNPOD_HANDLER environment variable
-ENV RUNPOD_HANDLER=rp_handler.handler
+# Expose the port the app runs on
+EXPOSE 8000
 
-# Run the handler script when the container launches
-CMD ["python", "-m", "runpod.serverless.worker"]
+# Run the Uvicorn server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
