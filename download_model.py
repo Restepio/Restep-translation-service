@@ -1,5 +1,6 @@
 import os
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import torch
 
 model_name = "facebook/nllb-200-1.3B"
 print(f"Downloading model {model_name}...")
@@ -12,7 +13,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
 model = AutoModelForSeq2SeqLM.from_pretrained(
     model_name,
     cache_dir=cache_dir,
-    variant="fp16",
+    torch_dtype=torch.float16,
 )
 
 # Save the model with safetensors
