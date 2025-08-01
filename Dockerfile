@@ -1,5 +1,5 @@
 # Use the official RunPod Pytorch image
-FROM runpod/pytorch:2.8.0-py3.11-cuda12.8.1-cudnn-devel-ubuntu22.04
+FROM runpod/pytorch:260-py311-cuda1260-cudnn-devel-ubuntu2204
 
 # Set the working directory in the container
 WORKDIR /app
