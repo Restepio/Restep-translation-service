@@ -16,7 +16,7 @@ class TranslationRequest(BaseModel):
     tgt_lang: str
 
 # Load model from the cached directory
-model_name = "facebook/nllb-200-1.3B"
+model_name = "facebook/nllb-200-distilled-600M"
 cache_dir = "/app/model_cache"
 
 logger.info("Loading tokenizer and model from: %s", cache_dir)
