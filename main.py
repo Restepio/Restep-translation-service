@@ -27,16 +27,19 @@ try:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info("Using device: %s", device)
     
-    # Load model with proper device mapping and low_cpu_mem_usage to avoid meta tensor issues
+    # Load model with safetensors but without device_map to avoid issues
     model = AutoModelForSeq2SeqLM.from_pretrained(
         model_name, 
         cache_dir=cache_dir, 
         use_safetensors=True,
-        device_map="auto" if torch.cuda.is_available() else None,
-        low_cpu_mem_usage=True,
-        torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
+        low_cpu_mem_usage=True
     )
-    logger.info("Model loaded successfully with device mapping")
+    logger.info("Model loaded successfully")
+    
+    # Move model to device after loading
+    if torch.cuda.is_available():
+        model = model.half().cuda()  # Convert to half precision and move to GPU
+        logger.info("Model moved to GPU with half precision")
     
     model.eval()
     logger.info("Model set to eval mode")
