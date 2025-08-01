@@ -9,6 +9,14 @@ cache_dir = "/app/model_cache"
 os.makedirs(cache_dir, exist_ok=True)
 
 tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_name, cache_dir=cache_dir)
+model = AutoModelForSeq2SeqLM.from_pretrained(
+    model_name,
+    cache_dir=cache_dir,
+    variant="fp16",
+)
 
-print("Model downloaded successfully.") 
+# Save the model with safetensors
+model.save_pretrained(cache_dir, safe_serialization=True)
+tokenizer.save_pretrained(cache_dir)
+
+print("Model downloaded and saved with safetensors successfully.") 
