@@ -20,8 +20,8 @@ model_name = "facebook/nllb-200-1.3B"
 cache_dir = "/app/model_cache"
 
 logger.info("Loading tokenizer and model from: %s", cache_dir)
-tokenizer = AutoTokenizer.from_pretrained(cache_dir)
-model = AutoModelForSeq2SeqLM.from_pretrained(cache_dir, torch_dtype=torch.float16, low_cpu_mem_usage=True)
+tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name, cache_dir=cache_dir)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info("Using device: %s", device)
 model.to(device)

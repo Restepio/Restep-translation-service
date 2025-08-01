@@ -9,16 +9,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the script to download the model and run it
-COPY download_model.py .
-RUN python download_model.py
-
-# Copy the handler and main application files
-COPY rp_handler.py .
+# Copy the main application file
 COPY main.py .
 
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Run the Uvicorn server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the Uvicorn server with multiple workers
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
