@@ -17,7 +17,7 @@ class TranslationRequest(BaseModel):
     tgt_lang: str
 
 # Load model
-model_name = "facebook/nllb-200-1.3B"
+model_name = "facebook/nllb-200-3.3B"
 
 try:
     logger.info("Loading tokenizer and model: %s", model_name)
