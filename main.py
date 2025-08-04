@@ -1,4 +1,5 @@
 import logging
+import json
 from fastapi import FastAPI
 from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -44,11 +45,11 @@ except Exception as e:
     logger.error("Error during model loading: %s", str(e))
     raise e
 
-@app.post("/translate")
-def translate(req: TranslationRequest):
+# Shared translation function for both FastAPI and RunPod handler
+def perform_translation(text: str, src_lang: str, tgt_lang: str):
     try:
-        logger.info("Received translation request: %s -> %s", req.src_lang, req.tgt_lang)
-        inputs = tokenizer(req.text, return_tensors="pt", src_lang=req.src_lang)
+        logger.info("Received translation request: %s -> %s", src_lang, tgt_lang)
+        inputs = tokenizer(text, return_tensors="pt", src_lang=src_lang)
         
         # Move inputs to the same device as the model
         if torch.cuda.is_available():
@@ -57,7 +58,7 @@ def translate(req: TranslationRequest):
         with torch.no_grad():
             output = model.generate(
                 **inputs,
-                forced_bos_token_id=tokenizer.lang_code_to_id[req.tgt_lang],
+                forced_bos_token_id=tokenizer.lang_code_to_id[tgt_lang],
                 max_length=256
             )
         translated = tokenizer.decode(output[0], skip_special_tokens=True)
@@ -65,4 +66,46 @@ def translate(req: TranslationRequest):
         return {"translation": translated}
     except Exception as e:
         logger.error("Error during translation: %s", str(e))
+        return {"error": str(e)}
+
+# FastAPI endpoint
+@app.post("/translate")
+def translate(req: TranslationRequest):
+    return perform_translation(req.text, req.src_lang, req.tgt_lang)
+
+# Health check endpoint
+@app.get("/health")
+def health():
+    return {"status": "healthy", "model": model_name}
+
+# RunPod serverless handler
+def handler(event):
+    """
+    RunPod serverless handler function.
+    Expects event["input"] to contain the translation request.
+    """
+    try:
+        logger.info("RunPod handler received event")
+        
+        # Extract input from event
+        input_data = event.get("input", {})
+        
+        # Validate required fields
+        if not all(key in input_data for key in ["text", "src_lang", "tgt_lang"]):
+            return {
+                "error": "Missing required fields. Need: text, src_lang, tgt_lang"
+            }
+        
+        # Perform translation
+        result = perform_translation(
+            input_data["text"],
+            input_data["src_lang"], 
+            input_data["tgt_lang"]
+        )
+        
+        logger.info("RunPod handler completed successfully")
+        return result
+        
+    except Exception as e:
+        logger.error("Error in RunPod handler: %s", str(e))
         return {"error": str(e)} 
