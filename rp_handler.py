@@ -24,18 +24,29 @@ def load_model():
         logger.info("Loading tokenizer and model...")
         
         # Try to load from cache first, fallback to downloading
+        # Use safetensors to avoid PyTorch security vulnerability
         try:
             if os.path.exists(cache_dir):
                 tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
-                model = AutoModelForSeq2SeqLM.from_pretrained(model_name, cache_dir=cache_dir)
+                model = AutoModelForSeq2SeqLM.from_pretrained(
+                    model_name, 
+                    cache_dir=cache_dir,
+                    use_safetensors=True
+                )
             else:
                 tokenizer = AutoTokenizer.from_pretrained(model_name)
-                model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+                model = AutoModelForSeq2SeqLM.from_pretrained(
+                    model_name,
+                    use_safetensors=True
+                )
         except:
             # Fallback to downloading if cache fails
             logger.info("Cache not found, downloading model from Hugging Face Hub")
             tokenizer = AutoTokenizer.from_pretrained(model_name)
-            model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+            model = AutoModelForSeq2SeqLM.from_pretrained(
+                model_name,
+                use_safetensors=True
+            )
         
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info("Using device: %s", device)
