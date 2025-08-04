@@ -15,31 +15,24 @@ class TranslationRequest(BaseModel):
     src_lang: str
     tgt_lang: str
 
-# Load model from the cached directory
-model_name = "facebook/nllb-200-distilled-600M"
-cache_dir = "/app/model_cache"
+# Load model
+model_name = "facebook/nllb-200-1.3B"
 
 try:
-    logger.info("Loading tokenizer and model from: %s", cache_dir)
-    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
+    logger.info("Loading tokenizer and model: %s", model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     logger.info("Tokenizer loaded successfully")
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info("Using device: %s", device)
     
-    # Load model with safetensors but without device_map to avoid issues
-    model = AutoModelForSeq2SeqLM.from_pretrained(
-        model_name, 
-        cache_dir=cache_dir, 
-        use_safetensors=True,
-        low_cpu_mem_usage=True
-    )
+    # Load model without safetensors and low_cpu_mem_usage to avoid meta tensor issues
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     logger.info("Model loaded successfully")
     
     # Move model to device after loading
-    if torch.cuda.is_available():
-        model = model.half().cuda()  # Convert to half precision and move to GPU
-        logger.info("Model moved to GPU with half precision")
+    model = model.to(device)
+    logger.info("Model moved to device: %s", device)
     
     model.eval()
     logger.info("Model set to eval mode")
