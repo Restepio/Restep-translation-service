@@ -26,8 +26,11 @@ try:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info("Using device: %s", device)
     
-    # Load model without safetensors and low_cpu_mem_usage to avoid meta tensor issues
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+    # Load model with safetensors to avoid security vulnerabilities
+    model = AutoModelForSeq2SeqLM.from_pretrained(
+        model_name,
+        use_safetensors=True
+    )
     logger.info("Model loaded successfully")
     
     # Move model to device after loading
