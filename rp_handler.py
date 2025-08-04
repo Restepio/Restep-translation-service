@@ -85,7 +85,7 @@ def perform_translation(text: str, src_lang: str, tgt_lang: str):
     with torch.no_grad():
         output = model.generate(
             **inputs,
-            forced_bos_token_id=tokenizer.lang_code_to_id[tgt_lang],
+            forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
             max_length=256
         )
     translated = tokenizer.decode(output[0], skip_special_tokens=True)
