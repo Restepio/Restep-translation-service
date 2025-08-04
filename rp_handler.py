@@ -75,7 +75,13 @@ def perform_translation(text: str, src_lang: str, tgt_lang: str):
     load_model()  # Ensure model is loaded
     
     logger.info("Received translation request: %s -> %s", src_lang, tgt_lang)
-    inputs = tokenizer(text, return_tensors="pt", src_lang=src_lang).to(device)
+    
+    # Set the source language for the tokenizer
+    tokenizer.src_lang = src_lang
+    
+    # Tokenize the input text
+    inputs = tokenizer(text, return_tensors="pt").to(device)
+    
     with torch.no_grad():
         output = model.generate(
             **inputs,
