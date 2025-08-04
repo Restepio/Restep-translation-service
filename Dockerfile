@@ -8,16 +8,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all application files
+# Copy the handler file
 COPY rp_handler.py .
-COPY server.py .
-COPY start.py .
 
-# Make start.py executable
-RUN chmod +x start.py
-
-# Expose port 8000 for HTTP mode (will be ignored in serverless mode)
-EXPOSE 8000
-
-# Run the startup script that detects the environment
-CMD ["python", "start.py"]
+# Run the RunPod serverless handler
+CMD ["python", "rp_handler.py"]
