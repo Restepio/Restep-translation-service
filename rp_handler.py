@@ -1,15 +1,67 @@
 import runpod
 import logging
-from main import perform_translation
+import os
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import torch
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nllb_translator")
 
+# Global variables for model and tokenizer
+model = None
+tokenizer = None
+device = None
+
+def load_model():
+    """Load the model and tokenizer"""
+    global model, tokenizer, device
+    
+    if model is None:
+        model_name = "facebook/nllb-200-1.3B"
+        cache_dir = "/app/model_cache"
+        
+        logger.info("Loading tokenizer and model...")
+        
+        # Try to load from cache first, fallback to downloading
+        try:
+            if os.path.exists(cache_dir):
+                tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
+                model = AutoModelForSeq2SeqLM.from_pretrained(model_name, cache_dir=cache_dir)
+            else:
+                tokenizer = AutoTokenizer.from_pretrained(model_name)
+                model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        except:
+            # Fallback to downloading if cache fails
+            logger.info("Cache not found, downloading model from Hugging Face Hub")
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logger.info("Using device: %s", device)
+        model.to(device)
+        model.eval()
+        logger.info("Model loaded and ready")
+
+def perform_translation(text: str, src_lang: str, tgt_lang: str):
+    """Translation function"""
+    load_model()  # Ensure model is loaded
+    
+    logger.info("Received translation request: %s -> %s", src_lang, tgt_lang)
+    inputs = tokenizer(text, return_tensors="pt", src_lang=src_lang).to(device)
+    with torch.no_grad():
+        output = model.generate(
+            **inputs,
+            forced_bos_token_id=tokenizer.lang_code_to_id[tgt_lang],
+            max_length=256
+        )
+    translated = tokenizer.decode(output[0], skip_special_tokens=True)
+    logger.info("Translation complete: %s", translated)
+    return {"translation": translated}
+
 def handler(job):
     """
     Handler function that will be called by the serverless worker.
-    Uses the shared perform_translation function from main.py
     """
     try:
         logger.info("RunPod handler received job")
@@ -22,7 +74,6 @@ def handler(job):
         if not all([text, src_lang, tgt_lang]):
             return {"error": "Missing required fields: text, src_lang, or tgt_lang"}
 
-        # Use the shared translation function from main.py
         result = perform_translation(text, src_lang, tgt_lang)
         
         logger.info("RunPod handler completed successfully")
