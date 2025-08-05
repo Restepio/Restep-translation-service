@@ -34,7 +34,7 @@ def load_model():
     global model, tokenizer, device
     
     if model is None:
-        model_name = "facebook/nllb-200-3.3B"
+        model_name = "facebook/nllb-200-1.3B"
         cache_dir = "/app/model_cache"
         
         logger.info("Loading tokenizer and model...")
