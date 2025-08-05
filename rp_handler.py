@@ -1,17 +1,33 @@
-import runpod
 import logging
 import os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
+import uvicorn
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nllb_translator")
 
+app = FastAPI(
+    title="NLLB Translation Service",
+    description="Translation service using Meta's NLLB-200-1.3B model",
+    version="1.0.0"
+)
+
 # Global variables for model and tokenizer
 model = None
 tokenizer = None
 device = None
+
+class TranslationRequest(BaseModel):
+    text: str
+    src_lang: str
+    tgt_lang: str
+
+class TranslationResponse(BaseModel):
+    translation: str
 
 def load_model():
     """Load the model and tokenizer"""
@@ -59,41 +75,70 @@ def perform_translation(text: str, src_lang: str, tgt_lang: str):
     load_model()  # Ensure model is loaded
     
     logger.info("Received translation request: %s -> %s", src_lang, tgt_lang)
-    inputs = tokenizer(text, return_tensors="pt", src_lang=src_lang).to(device)
+    
+    # Set the source language for the tokenizer
+    tokenizer.src_lang = src_lang
+    
+    # Tokenize the input text
+    inputs = tokenizer(text, return_tensors="pt").to(device)
+    
     with torch.no_grad():
         output = model.generate(
             **inputs,
-            forced_bos_token_id=tokenizer.lang_code_to_id[tgt_lang],
+            forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
             max_length=256
         )
     translated = tokenizer.decode(output[0], skip_special_tokens=True)
     logger.info("Translation complete: %s", translated)
     return {"translation": translated}
 
-def handler(job):
-    """
-    Handler function that will be called by the serverless worker.
-    """
+@app.on_event("startup")
+async def startup_event():
+    """Load model on startup"""
+    logger.info("Starting up FastAPI server...")
+    load_model()
+    logger.info("Server ready!")
+
+@app.post("/translate", response_model=TranslationResponse)
+async def translate(req: TranslationRequest):
+    """FastAPI endpoint for translation"""
     try:
-        logger.info("RunPod handler received job")
+        if not all([req.text, req.src_lang, req.tgt_lang]):
+            raise HTTPException(status_code=400, detail="Missing required fields: text, src_lang, or tgt_lang")
         
-        job_input = job['input']
-        text = job_input.get('text')
-        src_lang = job_input.get('src_lang')
-        tgt_lang = job_input.get('tgt_lang')
-
-        if not all([text, src_lang, tgt_lang]):
-            return {"error": "Missing required fields: text, src_lang, or tgt_lang"}
-
-        result = perform_translation(text, src_lang, tgt_lang)
-        
-        logger.info("RunPod handler completed successfully")
-        return result
+        result = perform_translation(req.text, req.src_lang, req.tgt_lang)
+        return TranslationResponse(translation=result["translation"])
         
     except Exception as e:
-        logger.error("Error in RunPod handler: %s", str(e))
-        return {"error": str(e)}
+        logger.error("Error in translation: %s", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy", 
+        "service": "NLLB Translation Service",
+        "model_loaded": model is not None
+    }
+
+@app.get("/")
+async def root():
+    """Root endpoint with basic info"""
+    return {
+        "message": "NLLB Translation Service", 
+        "model": "facebook/nllb-200-1.3B",
+        "endpoints": {
+            "translate": "/translate",
+            "health": "/health",
+            "docs": "/docs"
+        }
+    }
 
 if __name__ == "__main__":
-    runpod.serverless.start({"handler": handler}) 
+    uvicorn.run(
+        "rp_handler:app",
+        host="0.0.0.0",
+        port=8000,
+        workers=1
+    ) 

@@ -8,8 +8,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the handler file
+# Copy the FastAPI server file
 COPY rp_handler.py .
 
-# Run the RunPod serverless handler
-CMD ["python", "rp_handler.py"]
+# Expose port 8000 for the FastAPI server
+EXPOSE 8000
+
+# Run the FastAPI server
+CMD ["uvicorn", "rp_handler:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
